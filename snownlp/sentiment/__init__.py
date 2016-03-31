@@ -7,10 +7,12 @@ import codecs
 from .. import normal
 from .. import seg
 from ..classification.bayes import Bayes
+import pymongo
 
 data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                          'sentiment.marshal')
-
+conn = pymongo.Connection("127.0.0.1",27017)
+db = conn.testDB
 
 class Sentiment(object):
 
@@ -46,13 +48,22 @@ class Sentiment(object):
 classifier = Sentiment()
 classifier.load()
 
+#add datasource from mongodb
+def trainFromMongo(positiveCollection, negativeCollection):
+    neg_docs = db.negativeCommentsFixSchema.find()["CommentContent"]
+    pos_docs = db.positiveCommentsFixSchema.find()["CommentContent"]
+    train(neg_docs, pos_docs)
 
-def train(neg_file, pos_file):
+#add datasource from file
+def trainFromFile(neg_file, pos_file):
     neg_docs = codecs.open(neg_file, 'r', 'utf-8').readlines()
     pos_docs = codecs.open(pos_file, 'r', 'utf-8').readlines()
+    train(neg_docs, pos_docs)
+
+def train(negs, poss):
     global classifier
     classifier = Sentiment()
-    classifier.train(neg_docs, pos_docs)
+    classifier.train(negs, poss)
 
 
 def save(fname, iszip=True):
